@@ -3,9 +3,11 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { MarchingCubes } from "three/examples/jsm/objects/MarchingCubes";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -24,15 +26,16 @@ export default function HomePage() {
     renderer.setSize(window.innerWidth / 2, window.innerHeight);
     mountRef.current.appendChild(renderer.domElement);
 
-    // Marching Cubes for Lava Lamp
-    const resolution = 50;
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xff3b3b, // Lava red
-      emissive: 0xff6b6b, // Soft glow
-      metalness: 0.2,
-      roughness: 0.1,
+    // Create Marching Cubes Lava Lamp Effect
+    const resolution = 60;
+    const material = new THREE.MeshPhysicalMaterial({
+      color: "#ff4500", // Deep lava red-orange
+      emissive: "#ff6347", // Soft glowing effect
+      metalness: 0.1,
+      roughness: 0.2,
       transparent: true,
-      opacity: 0.95,
+      transmission: 0.9, // Simulating liquid-like effect
+      thickness: 2,
     });
 
     const lavaLamp = new MarchingCubes(
@@ -42,7 +45,7 @@ export default function HomePage() {
       true,
       100000
     );
-    lavaLamp.scale.set(1, 2, 1); // Tall and stretched for a lava lamp shape
+    lavaLamp.scale.set(0.8, 1.8, 0.8); // Lava lamp shape (taller)
     scene.add(lavaLamp);
 
     // Lights
@@ -53,28 +56,22 @@ export default function HomePage() {
     pointLight.position.set(3, 3, 3);
     scene.add(pointLight);
 
-    // Lava Motion Animation
+    // Lava Motion Animation (Slow & Continuous Blob)
     let time = 0;
     const animate = () => {
       requestAnimationFrame(animate);
-      time += 0.02;
+      time += 0.02; // Very slow movement for a smooth lava effect
 
       lavaLamp.reset();
 
-      const numBlobs = 5; // Number of moving lava blobs
-      const strength = 1.2 / ((Math.sqrt(numBlobs) - 1) / 4 + 1);
-      const subtract = 12;
+      const strength = 2.5; // Stronger influence to merge into one blob
+      const subtract = 10;
 
-      for (let i = 0; i < numBlobs; i++) {
-        const ballx =
-          Math.sin(i + 1.26 * time * (1.03 + 0.5 * Math.cos(0.21 * i))) * 0.3 +
-          0.5;
-        const bally =
-          Math.abs(Math.cos(i + 1.12 * time * Math.cos(1.22 + 0.1424 * i))) *
-          0.8;
-        const ballz =
-          Math.cos(i + 1.32 * time * 0.1 * Math.sin(0.92 + 0.53 * i)) * 0.3 +
-          0.5;
+      // Create a slow morphing lava effect
+      for (let i = 0; i < 3; i++) {
+        const ballx = 0.5 + 0.2 * Math.sin(time + i * 1.5);
+        const bally = 0.5 + 0.4 * Math.cos(time * 0.5 + i * 0.8);
+        const ballz = 0.5 + 0.2 * Math.sin(time * 0.4 + i * 1.2);
 
         lavaLamp.addBall(ballx, bally, ballz, strength, subtract);
       }
@@ -118,7 +115,10 @@ export default function HomePage() {
           Experience a revolutionary platform to manage tasks, automate
           workflows, and enhance collaboration.
         </p>
-        <button className="mt-6 px-8 py-4 bg-pink-500 hover:bg-pink-600 rounded-lg transition text-lg font-medium">
+        <button
+          className="mt-6 px-8 py-4 bg-pink-500 hover:bg-pink-600 rounded-lg transition text-lg font-medium"
+          onClick={() => router.push("/search")}
+        >
           Get Started
         </button>
       </div>
