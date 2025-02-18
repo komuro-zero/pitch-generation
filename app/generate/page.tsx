@@ -1,14 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useCompanyContext } from "@/context/CompanyContext"; // ✅ Use context instead of URL query
+import { useRouter } from "next/navigation";
+import { useCompanyContext } from "@/context/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 export default function GeneratePage() {
-  const { selectedCompanies } = useCompanyContext(); // Get selected companies from context
+  const { selectedCompanies } = useCompanyContext();
+  const router = useRouter();
   const [userService, setUserService] = useState("");
   const [improvementType, setImprovementType] = useState("フォーマル");
   const [status, setStatus] = useState("");
@@ -25,11 +33,13 @@ export default function GeneratePage() {
   }, [finalPitch]);
 
   const handleGenerate = async () => {
+    console.log("Generating pitch...");
     setStatus("Starting...");
     setSummary("");
     setPitch("");
     setFinalPitch("");
     setLoading(true);
+    console.log("Selected companies:", selectedCompanies);
 
     const eventSource = new EventSource(
       `/api/generatePitch?companyData=${encodeURIComponent(
@@ -62,40 +72,52 @@ export default function GeneratePage() {
     });
 
     eventSource.addEventListener("error", (event) => {
-      console.error("Error received:", event.data);
+      console.error("Error received:", event);
       setStatus("Error occurred while generating pitch.");
       eventSource.close();
       setLoading(false);
     });
 
     return () => {
-      eventSource.close(); // ✅ Clean up event source on unmount
+      eventSource.close();
     };
   };
 
   return (
     <div className="p-6">
+      {/* Back Button */}
+      <Button variant="outline" className="mb-4" onClick={() => router.back()}>
+        Back
+      </Button>
+
       <h1 className="text-2xl font-bold mb-4">Generate Sales Pitch</h1>
 
       <Textarea
         placeholder="Selected company data"
         value={JSON.stringify(selectedCompanies, null, 2)}
         readOnly
+        className="h-48" // height of 12rem (48 * 0.25rem)
       />
+
       <Input
         className="mt-2"
         placeholder="Enter your service/product"
         value={userService}
         onChange={(e) => setUserService(e.target.value)}
       />
+
       <Select
-        className="mt-2"
         value={improvementType}
-        onChange={(e) => setImprovementType(e.target.value)}
+        onValueChange={(value: string) => setImprovementType(value)}
       >
-        <option value="フォーマル">フォーマル</option>
-        <option value="説得力のある">説得力のある</option>
-        <option value="カジュアル">カジュアル</option>
+        <SelectTrigger className="w-[180px] mt-2">
+          <SelectValue placeholder="Select improvement type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="フォーマル">フォーマル</SelectItem>
+          <SelectItem value="説得力のある">説得力のある</SelectItem>
+          <SelectItem value="カジュアル">カジュアル</SelectItem>
+        </SelectContent>
       </Select>
 
       <Button className="mt-4" onClick={handleGenerate} disabled={loading}>

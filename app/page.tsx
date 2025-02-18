@@ -1,117 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useCompanyContext } from "@/context/CompanyContext";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { MarchingCubes } from "three/examples/jsm/objects/MarchingCubes";
 
-export default function SearchPage() {
-  const [companyName, setCompanyName] = useState("");
-  const [results, setResults] = useState([]);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { setSelectedCompanies } = useCompanyContext();
+export default function HomePage() {
+  const mountRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = async () => {
-    setLoading(true);
-    try {
-      console.log("Fetching data...");
-      const res = await fetch(
-        `/api/tavily?companyName=${encodeURIComponent(companyName)}`
-      );
-      if (!res.ok) throw new Error("Error fetching data");
-      const data = await res.json();
-      console.log(data.results);
-      setResults(Array.isArray(data.results) ? data.results : []);
-    } catch (error) {
-      console.error("Error:", error);
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    if (!mountRef.current) return;
 
-  const toggleSelection = (index: number) => {
-    setSelected((prev) => {
-      const newSet = new Set(prev);
-      newSet.has(index) ? newSet.delete(index) : newSet.add(index);
-      return newSet;
-    });
-  };
-
-  const handleNext = () => {
-    if (selected.size === 0) return;
-    const selectedCompanies = Array.from(selected).map(
-      (index) => results[index]
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      50,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
     );
-    setSelectedCompanies(selectedCompanies);
-    router.push("/generate");
-  };
+    camera.position.set(0, 0, 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth / 2, window.innerHeight);
+    mountRef.current.appendChild(renderer.domElement);
+
+    // Marching Cubes for Lava Lamp
+    const resolution = 50;
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff3b3b, // Lava red
+      emissive: 0xff6b6b, // Soft glow
+      metalness: 0.2,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.95,
+    });
+
+    const lavaLamp = new MarchingCubes(
+      resolution,
+      material,
+      true,
+      true,
+      100000
+    );
+    lavaLamp.scale.set(1, 2, 1); // Tall and stretched for a lava lamp shape
+    scene.add(lavaLamp);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xff8888, 3, 10);
+    pointLight.position.set(3, 3, 3);
+    scene.add(pointLight);
+
+    // Lava Motion Animation
+    let time = 0;
+    const animate = () => {
+      requestAnimationFrame(animate);
+      time += 0.02;
+
+      lavaLamp.reset();
+
+      const numBlobs = 5; // Number of moving lava blobs
+      const strength = 1.2 / ((Math.sqrt(numBlobs) - 1) / 4 + 1);
+      const subtract = 12;
+
+      for (let i = 0; i < numBlobs; i++) {
+        const ballx =
+          Math.sin(i + 1.26 * time * (1.03 + 0.5 * Math.cos(0.21 * i))) * 0.3 +
+          0.5;
+        const bally =
+          Math.abs(Math.cos(i + 1.12 * time * Math.cos(1.22 + 0.1424 * i))) *
+          0.8;
+        const ballz =
+          Math.cos(i + 1.32 * time * 0.1 * Math.sin(0.92 + 0.53 * i)) * 0.3 +
+          0.5;
+
+        lavaLamp.addBall(ballx, bally, ballz, strength, subtract);
+      }
+
+      lavaLamp.update();
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Handle resizing
+    const handleResize = () => {
+      const width = window.innerWidth / 2;
+      const height = window.innerHeight;
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      mountRef.current?.removeChild(renderer.domElement);
+      renderer.dispose();
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Company Search</h1>
-
-        <div className="flex gap-2 mb-6">
-          <Input
-            placeholder="Enter company name"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-          />
-          <Button onClick={handleSearch} disabled={loading || !companyName}>
-            {loading ? "Searching..." : "Search"}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          {results.map((result, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="relative"
-            >
-              <Card
-                className={`relative p-4 border transition-colors ${
-                  selected.has(index) ? "border-blue-500" : "border-gray-200"
-                }`}
-              >
-                <div className="absolute top-3 left-3">
-                  <Checkbox
-                    checked={selected.has(index)}
-                    onCheckedChange={() => toggleSelection(index)}
-                  />
-                </div>
-                <a
-                  href={result.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xl font-semibold text-blue-600 hover:underline block ml-8"
-                >
-                  {result.title}
-                </a>
-                <p className="line-clamp-1">{result.content}</p>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {selected.size > 0 && (
-          <div className="mt-6 flex justify-end">
-            <Button
-              variant="secondary"
-              className="hover:bg-gray-500"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-          </div>
-        )}
+    <main className="relative w-screen h-screen bg-gradient-to-br from-indigo-900 via-purple-700 to-pink-600 flex">
+      {/* 3D Lava Lamp Animation - Left Side */}
+      <div className="w-1/2 flex items-center justify-center">
+        <div ref={mountRef} className="w-full h-full" />
       </div>
-    </div>
+
+      {/* SaaS Hero Text - Right Side */}
+      <div className="w-1/2 flex flex-col justify-center items-start pl-16 pr-10 text-white">
+        <h1 className="text-5xl font-bold leading-tight">
+          Boost Your Productivity
+        </h1>
+        <p className="text-lg mt-4 text-gray-300">
+          Experience a revolutionary platform to manage tasks, automate
+          workflows, and enhance collaboration.
+        </p>
+        <button className="mt-6 px-8 py-4 bg-pink-500 hover:bg-pink-600 rounded-lg transition text-lg font-medium">
+          Get Started
+        </button>
+      </div>
+    </main>
   );
 }

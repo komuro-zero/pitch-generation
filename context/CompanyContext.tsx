@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 
 type Company = {
   title: string;
@@ -16,7 +22,20 @@ type CompanyContextType = {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<Company[]>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("selectedCompanies");
+      return stored ? JSON.parse(stored) : [];
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "selectedCompanies",
+      JSON.stringify(selectedCompanies)
+    );
+  }, [selectedCompanies]);
 
   return (
     <CompanyContext.Provider
