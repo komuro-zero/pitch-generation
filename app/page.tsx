@@ -60,7 +60,7 @@ export default function HomePage() {
     let time = 0;
     const animate = () => {
       requestAnimationFrame(animate);
-      time += 0.02; // Very slow movement for a smooth lava effect
+      time += 0.04; // Very slow movement for a smooth lava effect
 
       lavaLamp.reset();
 
@@ -100,18 +100,18 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="relative w-screen h-screen bg-gradient-to-br from-indigo-900 via-purple-700 to-pink-600 flex">
+    <main className="relative w-screen h-screen bg-gradient-to-br flex">
       {/* 3D Lava Lamp Animation - Left Side */}
       <div className="w-1/2 flex items-center justify-center">
         <div ref={mountRef} className="w-full h-full" />
       </div>
 
       {/* SaaS Hero Text - Right Side */}
-      <div className="w-1/2 flex flex-col justify-center items-start pl-16 pr-10 text-white">
+      <div className="w-1/2 flex flex-col justify-center items-start pl-16 pr-10 text-black">
         <h1 className="text-5xl font-bold leading-tight">
           Boost Your Productivity
         </h1>
-        <p className="text-lg mt-4 text-gray-300">
+        <p className="text-lg mt-4 text-gray-700">
           Experience a revolutionary platform to manage tasks, automate
           workflows, and enhance collaboration.
         </p>

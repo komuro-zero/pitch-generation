@@ -1,5 +1,5 @@
-# Use Node 21 (Alpine variant for a smaller footprint)
-FROM node:21-alpine
+# Use Node.js 21.7.1 (Debian-based, safer for dependencies)
+FROM node:21.7.1
 
 # Set the working directory inside the container
 WORKDIR /app
